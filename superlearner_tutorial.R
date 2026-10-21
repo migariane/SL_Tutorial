@@ -534,7 +534,13 @@ sl_mc
 # ---- Cluster Parallel ----
 # Box: code:cluster-parallel - Parallel execution using a cluster object
 cl <- parallel::makeCluster(4)
-parallel::clusterExport(cl, c("Y_train", "X_train"))
+
+# Load required packages in each worker
+parallel::clusterEvalQ(cl, {
+  library(SuperLearner)
+  library(glmnet)
+  library(randomForest)
+})
 
 set.seed(123)
 
@@ -912,7 +918,8 @@ tmle_fit <- tmle(
   Y = Y, A = A, W = W,
   Q.SL.library = c("SL.glm", "SL.glmnet", "SL.randomForest", "SL.xgboost"),
   g.SL.library = c("SL.glm", "SL.glmnet"),
-  cvControl = list(V = 5)
+  V.Q = 5,
+  V.g = 5
 )
 
 
