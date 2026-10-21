@@ -821,7 +821,7 @@ sl_reg <- SuperLearner(
   SL.library = c("SL.mean", "SL.glm", "SL.glmnet", "SL.randomForest", "SL.earth"))
 sl_reg
 
-# Box: code:continuous-error - Evaluating prediction error
+# Box: code:continuous-error - Evaluating in-sample prediction error
 pred_reg <- predict(sl_reg, X_reg)
 mse <- mean((Y_reg - pred_reg$pred)^2)
 cat("MSE :", round(mse, 4), "\n")
