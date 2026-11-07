@@ -69,7 +69,7 @@ library(SuperLearner)
 
 # Box: code:weighted-procedure - Implementing the weighted SL procedure
 # Simulate cross-validated predictions Z (n x K matrix)
-set.seed(123)
+set.seed(123, kind = "Mersenne-Twister")
 n <- 400
 K <- 3
 Z <- matrix(runif(n * K), nrow = n, ncol = K)
@@ -120,7 +120,7 @@ cat("\n")
 # ==============================================================================
 
 # Box: code:sim-covariates - Generating simulated covariates
-set.seed(2743)
+set.seed(2743, kind = "Mersenne-Twister")
 n <- 500
 
 # Covariates (standardised to unit scale)
@@ -149,7 +149,12 @@ summary(dat)
 # ==============================================================================
 
 # Box: code:sl-single - Fitting SL with a single algorithm
-set.seed(123)
+set.seed(
+  123,
+  kind = "Mersenne-Twister",
+  normal.kind = "Inversion",
+  sample.kind = "Rejection"
+)
 
 # Train / test split (80 % / 20 %)
 train_idx <- sample(1:n, 400)
@@ -173,7 +178,12 @@ round(as.matrix(coef(lasso_fit, s = "lambda.min")), 3)
 
 # ---- Two Algorithms ----
 # Box: code:sl-two - Fitting SL with two algorithms
-set.seed(123)
+set.seed(
+  123,
+  kind = "Mersenne-Twister",
+  normal.kind = "Inversion",
+  sample.kind = "Rejection"
+)
 
 sl_two <- SuperLearner(
   Y = Y_train, X = X_train,
@@ -185,7 +195,12 @@ sl_two
 
 # ---- Full Ensemble with Reference Model ----
 # Box: code:sl-reference - Including a reference model in the ensemble
-set.seed(123)
+set.seed(
+  123,
+  kind = "Mersenne-Twister",
+  normal.kind = "Inversion",
+  sample.kind = "Rejection"
+)
 sl <- SuperLearner(
   Y = Y_train, X = X_train,
   family = binomial(),
@@ -245,6 +260,42 @@ data.frame(
 )
 
 
+# ---- Figure 2: Predicted Probabilities by True Outcome ----
+fig2_data <- data.frame(
+  predicted_probability = as.numeric(pred$pred),
+  outcome = factor(
+    Y_test,
+    levels = c(0, 1),
+    labels = c("Healthy", "Disease")
+  )
+)
+
+fig2 <- ggplot(
+  fig2_data,
+  aes(x = predicted_probability, fill = outcome)
+) +
+  geom_histogram(
+    binwidth = 0.025,
+    position = "identity",
+    alpha = 0.65,
+    boundary = 0
+  ) +
+  scale_fill_manual(
+    values = c("Healthy" = "#F8766D", "Disease" = "#00BA38")
+  ) +
+  labs(
+    x = "Predicted probability of disease",
+    y = "Count",
+    fill = "outcome"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.title = element_text(size = 14),
+    legend.text  = element_text(size = 12)
+  )
+
+print(fig2)
+
 # ---- Area Under the ROC Curve ----
 # Box: code:auc - Computing the AUC on the test set
 pred_rocr <- ROCR::prediction(pred$pred, Y_test)
@@ -267,7 +318,7 @@ auc_rf     <- pROC::auc(Y_test, pred$library.predict[, 3])
 roc_mean   <- pROC::roc(Y_test, pred$library.predict[, 1], quiet = TRUE)
 roc_glmnet <- pROC::roc(Y_test, pred$library.predict[, 2], quiet = TRUE)
 roc_rf     <- pROC::roc(Y_test, pred$library.predict[, 3], quiet = TRUE)
-roc_sl     <- pROC::roc(Y_test, pred$pred, quiet = TRUE)
+roc_sl     <- pROC::roc(Y_test, as.numeric(pred$pred), quiet = TRUE)
 
 roc_df <- data.frame(
   FPR   = c(1 - roc_mean$specificities, 1 - roc_glmnet$specificities,
@@ -285,14 +336,14 @@ roc_df <- data.frame(
 
 # Plot ROC curves
 ggplot(roc_df, aes(x = FPR, y = TPR, color = Model)) +
-  geom_line(size = 1.1) +
+  geom_path(linewidth = 1.1) +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed",
               color = "gray50") +
   scale_color_manual(values = c("#3498DB", "#E74C3C", "#9B59B6", "#2ECC71")) +
   labs(x = "1 - Specificity", y = "Sensitivity") +
   xlim(0, 1) + ylim(0, 1) +
   theme_minimal(base_size = 14) +
-  theme(legend.position = c(0.65, 0.25))
+  theme(legend.position = "inside", legend.position.inside = c(0.65, 0.25))
 
 
 # ==============================================================================
@@ -315,6 +366,13 @@ system.time({
 # Box: code:cvsl-summary - Summarizing CV.SuperLearner results
 summary(cv_sl)
 
+# ---- Figure 4: Cross-Validated Risk ----
+# Cross-validated MSE with asymptotic 95% confidence intervals
+
+fig4 <- plot(cv_sl) +
+  theme_minimal(base_size = 14)
+
+print(fig4)
 
 # ---- Discrete Super Learner ----
 # Box: code:discrete-sl - Identifying the Discrete SL
@@ -465,7 +523,6 @@ cv_sl_screen2 <- CV.SuperLearner(
 
 summary(cv_sl_screen2)
 
-
 # ==============================================================================
 # SECTION 7: OPTIMIZING FOR AUC
 # (method.NNloglik standalone box removed in Overleaf; NNloglik is now
@@ -483,7 +540,6 @@ cv_sl_auc <- CV.SuperLearner(
                     c("SL.glmnet", "screen.corP"))
 )
 summary(cv_sl_auc)
-
 
 # ==============================================================================
 # SECTION 8: PARALLELIZATION
@@ -658,7 +714,12 @@ screen.cramersv <- function(Y, X, nscreen = 6, cts.num = 10, ...) {
 
 # ---- Incorporating Custom Wrappers ----
 # Box: code:cvsl-custom - Evaluating custom wrappers
-set.seed(123)
+set.seed(
+  123,
+  kind = "Mersenne-Twister",
+  normal.kind = "Inversion",
+  sample.kind = "Rejection"
+)
 
 cv_sl_custom <- CV.SuperLearner(
   Y = Y_train, X = X_train,
@@ -673,7 +734,13 @@ summary(cv_sl_custom)
 # ==============================================================================
 
 # Box: code:clinical-cohort - Simulating the clinical cohort
-set.seed(2024)
+set.seed(
+  2024,
+  kind = "Mersenne-Twister",
+  normal.kind = "Inversion",
+  sample.kind = "Rejection"
+)
+
 n_clinical <- 1000
 
 age         <- rnorm(n_clinical, 65, 10)
@@ -704,7 +771,13 @@ clinical_data <- data.frame(age, bmi, sbp, dbp, cholesterol, glucose,
   smoking, diabetes, family_hx, Y = Y_cvd)
 
 # Box: code:clinical-library - Training-test split and candidate library specification
-set.seed(42)
+set.seed(
+  42,
+  kind = "Mersenne-Twister",
+  normal.kind = "Inversion",
+  sample.kind = "Rejection"
+)
+
 idx <- sample(1:n_clinical, 700)
 X_clin_train <- clinical_data[idx, 1:9]
 Y_clin_train <- clinical_data[idx, 10]
@@ -752,7 +825,12 @@ summary(cv_sl_clinical)
 print(review_weights(cv_sl_clinical), digits = 3)
 
 # Box: code:clinical-evaluation - Evaluating the final SL model on the test set
-set.seed(42)
+set.seed(
+  42,
+  kind = "L'Ecuyer-CMRG",
+  normal.kind = "Inversion",
+  sample.kind = "Rejection"
+)
 
 sl_clinical_full <- SuperLearner(
   Y = Y_clin_train, X = X_clin_train,
@@ -796,7 +874,12 @@ ggplot(cal_sum, aes(x = predicted, y = observed)) +
 # ==============================================================================
 
 # Box: code:continuous-data - Generating data with a continuous outcome
-set.seed(99)
+set.seed(
+  99,
+  kind = "Mersenne-Twister",
+  normal.kind = "Inversion",
+  sample.kind = "Rejection"
+)
 
 n_reg <- 500
 
@@ -813,7 +896,13 @@ Y_reg <- with(
 )
 
 # Box: code:continuous-sl - Fitting SL with a continuous outcome
-set.seed(99)
+set.seed(
+  99,
+  kind = "Mersenne-Twister",
+  normal.kind = "Inversion",
+  sample.kind = "Rejection"
+)
+
 sl_reg <- SuperLearner(
   Y = Y_reg,
   X = X_reg,
@@ -833,7 +922,8 @@ cat("RMSE:", round(sqrt(mse), 4), "\n")
 # ==============================================================================
 
 # Box: code:dose-response - Data generation and true curve
-set.seed(12345)
+set.seed(12345, kind = "Mersenne-Twister",
+         normal.kind = "Inversion", sample.kind = "Rejection")
 n_dose <- 1000
 x_dose <- runif(n_dose, 0, 8)
 # True dose-response: sqrt branch below 2, quadratic branch above 2
@@ -847,7 +937,8 @@ yl <- 5 + 4 * sqrt(9 * xl) * as.numeric(xl < 2) +
 truth_df <- data.frame(x = xl, y = yl)
 
 # Box: code:dose-sl-fit - Super Learner fit for dose-response
-set.seed(123)
+set.seed(123, kind = "Mersenne-Twister",
+         normal.kind = "Inversion", sample.kind = "Rejection")
 sl_dose <- SuperLearner(
   Y = D_dose$y, X = data.frame(x = D_dose$x),
   family = gaussian(),
@@ -874,12 +965,24 @@ dose_df <- rbind(
 ggplot() +
   geom_point(data = D_dose, aes(x, y),
     color = "gray75", alpha = 0.3, size = 0.6) +
-  geom_line(data = dose_df, aes(x, y, color = Model), size = 1.1) +
+  geom_line(data = dose_df, aes(x, y, color = Model), linewidth = 1.1) +
   scale_color_manual(values = c(Truth = "black", SuperLearner = "#E74C3C",
     glm = "#3498DB", gam = "#2ECC71")) +
-  labs(x = "Exposure (dose)", y = "Outcome") +
+  labs(
+    title = "Dose-response estimation using Super Learner",
+    x = "Exposure (dose)",
+    y = "Outcome",
+    color = "Model"
+  ) +
   theme_minimal(base_size = 14) +
-  theme(legend.position = c(0.8, 0.75))
+  theme(
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 12),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12),
+    legend.position = c(0.8, 0.75)
+  )
 
 
 # ==============================================================================
